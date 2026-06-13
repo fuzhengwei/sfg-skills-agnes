@@ -53,6 +53,7 @@ def load_api_key() -> str:
     if not CONFIG_FILE.exists():
         print(json.dumps({
             "status": "error",
+            "error_code": "api_key_not_configured",
             "message": "API Key 尚未配置，请先运行: python3 scripts/agnes_config.py set --api-key YOUR_API_KEY"
         }, ensure_ascii=False, indent=2), file=sys.stderr)
         sys.exit(1)
@@ -64,6 +65,7 @@ def load_api_key() -> str:
     if not api_key:
         print(json.dumps({
             "status": "error",
+            "error_code": "api_key_empty",
             "message": "API Key 为空，请先运行: python3 scripts/agnes_config.py set --api-key YOUR_API_KEY"
         }, ensure_ascii=False, indent=2), file=sys.stderr)
         sys.exit(1)
@@ -161,10 +163,12 @@ def generate_image(
             result = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8", errors="replace")
+        extra = "\nAPI Key 可能已失效，请重新配置: python3 scripts/agnes_config.py set --api-key NEW_KEY" if e.code == 401 else ""
         return {
             "status": "error",
             "http_code": e.code,
-            "message": f"API 请求失败 (HTTP {e.code}): {error_body}"
+            "error_code": "api_key_invalid" if e.code == 401 else None,
+            "message": f"API 请求失败 (HTTP {e.code}): {error_body}{extra}"
         }
     except urllib.error.URLError as e:
         return {

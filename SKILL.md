@@ -20,21 +20,33 @@ allowed-tools: Bash(python3:*) Bash(curl:*) Read Write
 
 通过 Agnes AI API 生成高质量图片和视频。支持文生图、图生图、文生视频、图生视频、多图视频和关键帧动画。
 
-## 首次使用：配置 API Key
-
-安装技能后，必须先配置 API Key：
-
-```bash
-python3 "{SKILL_DIR}/scripts/agnes_config.py" set --api-key YOUR_API_KEY
-```
-
-查看当前配置：
-
-```bash
-python3 "{SKILL_DIR}/scripts/agnes_config.py" show
-```
+## API Key 配置
 
 > ⚠️ API Key 仅保存在本地 `~/.agnes/config.json`，不会被提交到版本控制。
+
+### 静默检查优先
+
+调用图像/视频生成前，**不要主动询问 API Key**。按以下逻辑处理：
+
+1. **静默检查**：直接读取 `~/.agnes/config.json`，如果已有 `api_key` 字段且非空，直接使用，无需提示用户
+2. **首次配置**：仅当本地不存在配置文件或 `api_key` 为空时，才引导用户设置：
+   ```bash
+   python3 "{SKILL_DIR}/scripts/agnes_config.py" set --api-key YOUR_API_KEY
+   ```
+3. **Key 失效**：仅当 API 返回 401 错误时，才提示用户 Key 可能失效，引导重新配置
+
+### 配置管理命令
+
+```bash
+# 查看当前配置
+python3 "{SKILL_DIR}/scripts/agnes_config.py" show
+
+# 设置/更新 API Key
+python3 "{SKILL_DIR}/scripts/agnes_config.py" set --api-key YOUR_API_KEY
+
+# 删除配置
+python3 "{SKILL_DIR}/scripts/agnes_config.py" delete
+```
 
 ---
 
@@ -256,17 +268,18 @@ python3 "{SKILL_DIR}/scripts/agnes_video.py" \
 
 ## 四、完整工作流
 
-1. **检查配置**：确认 API Key 已设置
+1. **静默检查 API Key**：直接执行脚本（脚本自动读取本地配置）；仅当脚本报错提示未配置时才引导用户设置 Key
 2. **优化提示词**：将用户简单的描述扩展为完整的专业提示词
 3. **调用 API**：执行生成脚本
 4. **等待结果**：视频需轮询等待，图像直接返回
 5. **展示结果**：图像用 `![]()` 格式，视频用链接格式
+6. **处理 401 错误**：如果 API 返回 401，提示用户 API Key 可能失效，引导重新配置
 
 ---
 
 ## Gotchas
 
-- ⚠️ **API Key 必须先配置**：未配置时所有请求都会失败，先运行 `agnes_config.py set --api-key`
+- ⚠️ **不要每次都问 API Key**：脚本自动从 `~/.agnes/config.json` 读取，已配置就直接用；仅在未配置或 401 时才引导设置
 - ⚠️ **图像 `response_format` 必须放在 `extra_body` 中**：放顶层会报 400 错误
 - ⚠️ **图生图的输入图片放在顶层 `image` 数组**，不是 `extra_body.image`
 - ⚠️ **图生图不需要 `tags: ["img2img"]`**
@@ -283,7 +296,7 @@ python3 "{SKILL_DIR}/scripts/agnes_video.py" \
 | 状态码 | 原因 | 处理方式 |
 |--------|------|----------|
 | 400 | 请求参数无效 | 检查参数格式，特别关注 `response_format` 位置 |
-| 401 | API Key 无效 | 检查 Key 是否正确，运行 `agnes_config.py show` 确认 |
+| 401 | API Key 无效或失效 | 提示用户 Key 可能失效，引导重新配置：`agnes_config.py set --api-key NEW_KEY` |
 | 404 | 任务或视频不存在 | 确认 video_id 或 task_id 是否正确 |
 | 500 | 服务器错误 | 稍后重试 |
 | 503 | 服务繁忙 | 等待后重试 |
