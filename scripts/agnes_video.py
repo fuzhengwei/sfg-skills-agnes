@@ -26,11 +26,26 @@ Agnes AI 视频生成脚本
 
 import argparse
 import json
+import ssl
 import sys
 import time
 import urllib.request
 import urllib.error
 from pathlib import Path
+
+# === SSL 上下文修复 ===
+# macOS 上 Python 可能找不到系统证书，使用 certifi 提供的证书链
+def _make_ssl_context() -> ssl.SSLContext:
+    """创建 SSL 上下文，优先使用 certifi 证书"""
+    ctx = ssl.create_default_context()
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        pass
+    return ctx
+
+SSL_CONTEXT = _make_ssl_context()
 
 
 # === 配置加载 ===
@@ -117,7 +132,7 @@ def create_video_task(
     req = urllib.request.Request(url, data=data, headers=headers, method="POST")
 
     try:
-        with urllib.request.urlopen(req, timeout=60) as resp:
+        with urllib.request.urlopen(req, timeout=60, context=SSL_CONTEXT) as resp:
             result = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8", errors="replace")
@@ -148,7 +163,7 @@ def query_video_result(video_id: str, model_name: str = None) -> dict:
     req = urllib.request.Request(url, headers=headers, method="GET")
 
     try:
-        with urllib.request.urlopen(req, timeout=30) as resp:
+        with urllib.request.urlopen(req, timeout=60, context=SSL_CONTEXT) as resp:
             result = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8", errors="replace")
@@ -168,7 +183,7 @@ def query_video_result(video_id: str, model_name: str = None) -> dict:
 
 def poll_until_complete(
     video_id: str,
-    poll_interval: int = 5,
+    poll_interval: int = 10,
     timeout: int = 600,
 ) -> dict:
     """轮询等待视频生成完成"""
@@ -295,7 +310,7 @@ def main():
                         help="视频 FPS，1-60 (默认: 24)")
     parser.add_argument("--seed", type=int, default=None, help="随机种子")
     parser.add_argument("--negative-prompt", default=None, help="负向提示词")
-    parser.add_argument("--poll-interval", type=int, default=5, help="轮询间隔秒数 (默认: 5)")
+    parser.add_argument("--poll-interval", type=int, default=10, help="轮询间隔秒数 (默认: 10)")
     parser.add_argument("--timeout", type=int, default=600, help="最大等待秒数 (默认: 600)")
     parser.add_argument("--no-wait", action="store_true",
                         help="仅创建任务，不等待完成")

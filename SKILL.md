@@ -165,7 +165,7 @@ python3 "{SKILL_DIR}/scripts/agnes_video.py" \
 | `--seed` | 随机 | 随机种子，用于可复现结果 |
 | `--negative-prompt` | 无 | 负向提示词 |
 | `--mode` | ti2vid | 生成模式（ti2vid / keyframes） |
-| `--poll-interval` | 5 | 轮询间隔秒数 |
+| `--poll-interval` | 10 | 轮询间隔秒数 |
 | `--timeout` | 600 | 最大等待秒数 |
 
 ### 2.6 常用时长参数

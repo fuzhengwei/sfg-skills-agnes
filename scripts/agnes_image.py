@@ -21,10 +21,24 @@ Agnes AI 图像生成脚本
 import argparse
 import base64
 import json
+import ssl
 import sys
 import urllib.request
 import urllib.error
 from pathlib import Path
+
+# === SSL 上下文修复 ===
+def _make_ssl_context() -> ssl.SSLContext:
+    """创建 SSL 上下文，优先使用 certifi 证书"""
+    ctx = ssl.create_default_context()
+    try:
+        import certifi
+        ctx = ssl.create_default_context(cafile=certifi.where())
+    except ImportError:
+        pass
+    return ctx
+
+SSL_CONTEXT = _make_ssl_context()
 
 
 # === 配置加载 ===
@@ -143,7 +157,7 @@ def generate_image(
     req = urllib.request.Request(url, data=data, headers=headers, method="POST")
 
     try:
-        with urllib.request.urlopen(req, timeout=360) as resp:
+        with urllib.request.urlopen(req, timeout=360, context=SSL_CONTEXT) as resp:
             result = json.loads(resp.read().decode("utf-8"))
     except urllib.error.HTTPError as e:
         error_body = e.read().decode("utf-8", errors="replace")
