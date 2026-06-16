@@ -2,6 +2,9 @@
 
 Agnes AI 图像与视频生成技能，兼容 Agent Skills 开放标准。
 
+- [https://github.com/fuzhengwei/xfg-skills-agnes](https://github.com/fuzhengwei/xfg-skills-agnes)
+- [https://gitcode.com/Yao__Shun__Yu/xfg-skills-agnes](https://gitcode.com/Yao__Shun__Yu/xfg-skills-agnes)
+
 ## 功能
 
 - **文生图**：根据文本提示词生成高质量图片
